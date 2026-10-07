@@ -1,0 +1,5 @@
+packages:
+  - "apps/*"
+onlyBuiltDependencies:
+  - "@foundry-rs/forge"
+  - "@foundry-rs/anvil"

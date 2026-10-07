@@ -1,0 +1,30 @@
+name: Checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm contracts:build
+      - run: git diff --exit-code apps/web/src/generated/registry.ts
+      - run: pnpm check
+      - name: Real local-chain integration
+        shell: bash
+        run: |
+          pnpm chain > /tmp/anvil.log 2>&1 &
+          trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -sf http://127.0.0.1:8547 -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' > /dev/null; then break; fi
+            sleep 1
+          done
+          pnpm seed
+          pnpm test:integration
+          pnpm verify .local/deployment.json .local/original.receipt.json apps/web/public/samples/original.pdf

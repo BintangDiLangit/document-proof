@@ -1,0 +1,13 @@
+node_modules/
+apps/web/dist/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+.env
+.env.*
+!.env.example
+apps/web/public/local-deployment.json
+.local/
+.DS_Store
+*.tsbuildinfo
+apps/web/public/local-proofs.json
