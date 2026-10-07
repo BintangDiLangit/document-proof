@@ -266,7 +266,10 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!target || !loaded) return;
+    if (!target || !loaded) {
+      setChecking(false);
+      return;
+    }
     setChecking(true);
     setResult(null);
     setError("");
@@ -359,8 +362,12 @@ export function App() {
     setTarget({ issuer, documentId });
     setPage("verify");
   };
-  const checkBytes = async (bytes: Uint8Array, name: string) => {
-    const generation = ++fileGeneration.current;
+  const checkBytes = async (
+    bytes: Uint8Array,
+    name: string,
+    generation: number,
+  ) => {
+    if (generation !== fileGeneration.current) return;
     setChecking(true);
     setError("");
     try {
@@ -383,14 +390,19 @@ export function App() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    const generation = ++fileGeneration.current;
     setFileHash(null);
     setFileName("");
     try {
       if (file.size > 20 * 1024 * 1024)
         throw new Error("Choose a PDF smaller than 20 MB.");
-      await checkBytes(new Uint8Array(await file.arrayBuffer()), file.name);
+      await checkBytes(
+        new Uint8Array(await file.arrayBuffer()),
+        file.name,
+        generation,
+      );
     } catch (e) {
-      setError(humanError(e));
+      if (generation === fileGeneration.current) setError(humanError(e));
     }
   };
   const sample = async (
@@ -404,6 +416,7 @@ export function App() {
           ? demo.ids.expired
           : demo.ids.active;
     chooseTarget(deployment?.issuer ?? demo.issuer, id);
+    const generation = fileGeneration.current;
     try {
       const response = await fetch(
         `${import.meta.env.BASE_URL}samples/${name === "altered" ? "altered" : "original"}.pdf`,
@@ -412,9 +425,10 @@ export function App() {
       await checkBytes(
         new Uint8Array(await response.arrayBuffer()),
         `${name === "altered" ? "altered" : "original"}.pdf`,
+        generation,
       );
     } catch (e) {
-      setError(humanError(e));
+      if (generation === fileGeneration.current) setError(humanError(e));
     }
   };
   const importReceipt = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -506,6 +520,21 @@ export function App() {
               : "Transaction reverted. No record was changed.",
           );
           return;
+        }
+        if (latest.kind === "issue" && latest.proof) {
+          const record = await lookup(
+            deployment,
+            latest.proof.issuer,
+            latest.proof.documentId,
+            latest.proof.sha256Hash,
+          );
+          if (record.integrity !== "match") {
+            savePending(null);
+            setTxMessage(
+              "Transaction included, but the expected document was not registered. Inspect wallet activity before retrying.",
+            );
+            return;
+          }
         }
         savePending(null);
         setTxMessage(

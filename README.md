@@ -29,6 +29,8 @@ Three separate checks: **file match**, **record status**, and **issuer permissio
 
 Files stay on the device. Fingerprints, issuer addresses, IDs and timestamps are public. Hashes are not encryption and may identify a known document. Use fictional/non-sensitive documents during development.
 
+[Validation evidence and remaining gates](docs/validation.md). GitHub Actions / Pages publication is currently blocked by an account billing lock; the local app is available at http://localhost:4173.
+
 ## Repository
 
 - `contracts/`: immutable, issuer-scoped Solidity registry and tests

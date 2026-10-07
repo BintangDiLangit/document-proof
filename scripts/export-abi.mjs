@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { format } from "prettier";
 const artifact = JSON.parse(
   await readFile(
     new URL(
@@ -12,5 +13,8 @@ await mkdir(new URL("../apps/web/src/generated/", import.meta.url), {
 });
 await writeFile(
   new URL("../apps/web/src/generated/registry.ts", import.meta.url),
-  `// Generated from the compiled contract. Run pnpm contracts:build.\nexport const registryAbi = ${JSON.stringify(artifact.abi, null, 2)} as const;\n`,
+  await format(
+    `// Generated from the compiled contract. Run pnpm contracts:build.\nexport const registryAbi = ${JSON.stringify(artifact.abi, null, 2)} as const;\n`,
+    { parser: "typescript" },
+  ),
 );
